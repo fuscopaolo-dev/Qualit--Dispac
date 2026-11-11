@@ -29,6 +29,7 @@ test('registrazione, accesso, attività, ricerca, storico, allegati e isolamento
  assert.equal((await api('/api/records?status=aperta')).records.length,0);
  await api('/api/attachment','POST',{record_id:id,name:'verbale.txt',data:'dGVzdA=='});
  assert.equal((await api('/api/records?search=verbale')).records[0].attachments[0].size,4);
+ const file=await s.attachment(1);assert.equal(await file.blob.text(),'test');
  assert.equal((await api('/api/records?search=assente')).records.length,0);
  await api('/api/logout','POST',{});
  await api('/api/register','POST',{...account,username:'second.user'});await api('/api/login','POST',{...account,username:'second.user'});

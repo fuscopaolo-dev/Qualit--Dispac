@@ -36,7 +36,7 @@ window.DQService = (() => {
   function download(blob, name) {
     const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
   }
-  async function request(url, method='GET', body=null) {
+  async function request(url, method='GET', body=null, options={}) {
     if(!local) {
       // Only this function knows the HTTP transport. api.php receives ?route=/records.
       const parsed=new URL(url,'https://local.invalid');
@@ -48,7 +48,7 @@ window.DQService = (() => {
       const response=await fetch(target,{method,credentials:'same-origin',headers,body:body===null?undefined:JSON.stringify(body)});
       if(!response.ok){const error=await response.json().catch(()=>({}));fail(error.error||'Richiesta non riuscita ('+response.status+').');}
       if(parsed.pathname.startsWith('/api/attachment/')||parsed.pathname==='/api/backup'){
-        const blob=await response.blob();download(blob,parsed.pathname==='/api/backup'?'dispac-backup.zip':'allegato');return {ok:true};
+        const blob=await response.blob();if(options.preview)return {blob};download(blob,parsed.pathname==='/api/backup'?'dispac-backup.zip':'allegato');return {ok:true};
       }
       const result=await response.json();if(parsed.pathname==='/api/me')session=result.user;
       return result;
@@ -101,12 +101,13 @@ window.DQService = (() => {
     }
     if(path.startsWith('/api/attachment/')) {
       const item=archive.attachments.find(a=>a.id===Number(path.split('/').pop()));if(!item)fail('Allegato non trovato.');
-      download(new Blob([Uint8Array.from(atob(item.data),c=>c.charCodeAt(0))],{type:'application/octet-stream'}),item.file_name);return {ok:true};
+      const blob=new Blob([Uint8Array.from(atob(item.data),c=>c.charCodeAt(0))],{type:'application/octet-stream'});if(options.preview)return {blob};download(blob,item.file_name);return {ok:true};
     }
     fail('Funzione non disponibile.');
   }
   return {
     local,request,
+    attachment(id){return request('/api/attachment/'+id,'GET',null,{preview:true});},
     enterDemo(){session={id:'demo',display_name:'Visitatore demo',role:'lettore'};},
     exportArchive(){if(!session||session.id==='demo')fail('Accedi a un account locale.');const data=read();download(new Blob([JSON.stringify({format:'dispac-archive',version:1,archive:data.archives[session.id]},null,2)],{type:'application/json'}),'dispac-archivio.json');},
     importArchive(text){

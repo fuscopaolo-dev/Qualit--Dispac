@@ -40,3 +40,8 @@ Per MySQL su Altervista o altro hosting serve codice sul server, ad esempio PHP.
 Non inserire mai credenziali SQL nel codice HTML/JavaScript.
 Leggi WEB.md per struttura, pubblicazione e collegamento al futuro backend.
 Il database SQLite delle versioni precedenti non è importato automaticamente.
+
+ANTEPRIME DOCUMENTI
+Nel dettaglio di un'attività gli allegati TXT, RTF e PDF si possono leggere
+nell'anteprima e aprire con "Espandi", senza scaricarli. Chiudi o Esc per tornare.
+RTF riproduce il testo e gli stili di base; PDF usa il lettore integrato del browser.
