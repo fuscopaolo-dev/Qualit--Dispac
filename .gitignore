@@ -2,3 +2,5 @@ dati_privati/
 __pycache__/
 *.pyc
 _site/
+dist/
+node_modules/

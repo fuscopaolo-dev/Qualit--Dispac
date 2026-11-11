@@ -1,65 +1,42 @@
-DISPAC QUALITA - VERSIONE AUTONOMA (PROTOTIPO FUNZIONANTE)
-=========================================================
+DISPAC QUALITÀ — WEBAPP HTML / JAVASCRIPT
 
-Questa piattaforma NON si collega agli archivi o ai servizi dell'Ateneo.
-Funziona con Python 3.10+ (libreria standard), SQLite e un browser moderno.
-Non richiede internet, cloud, pacchetti Python aggiuntivi, Teams o SharePoint.
+Apri index.html nella cartella principale con un browser moderno.
+Non sono necessari Python, installazioni o un server.
+Puoi usare anche AVVIA_WINDOWS.bat o AVVIA_MAC_LINUX.command.
 
-INSTALLAZIONE (Windows/macOS/Linux)
-1. Estrarre completamente l'archivio ZIP in una cartella stabile e protetta.
-2. Verificare che Python 3.10 o superiore sia installato.
-3. Aprire un terminale nella cartella DiSPAC_Qualita_Autonoma.
-4. Eseguire: python server.py --create-admin
-   Su alcuni sistemi usare 'python3' anziche' 'python'.
-   Scegliere nome utente e password robusta di almeno 12 caratteri.
-5. Avviare: python server.py
-6. Aprire nel browser: http://127.0.0.1:8765
+Registra un account locale, accedi e registra le attività. Processi, ricerca,
+monitoraggio, storico modifiche, allegati e CSV funzionano nel browser.
+La demo permette di consultare le schede senza creare un account.
 
-MEMORIA E RECUPERO
-- Ogni registrazione resta nel database 'dati_privati/qualita.sqlite3'.
-- La pagina 'Memoria e ricerca' consente filtri, dettagli, allegati e storico modifiche.
-- Il processo validato e' distinto dalle attivita' registrate.
-- Le registrazioni non sono cancellabili dall'interfaccia ordinaria.
-- E' possibile esportare in CSV i risultati della ricerca.
-- Nuovi account possono essere creati dall'amministratore (ruoli: admin, delegato, lettore).
-- Gli allegati sono conservati localmente in 'dati_privati/allegati'.
+IMPORTANTE SUI DATI
+Account e attività sono conservati solo nel browser e nel profilo utilizzato.
+Le password sono derivate con PBKDF2 e salt casuale, ma attività e allegati non
+sono cifrati. L'accesso locale non è una barriera di sicurezza contro chi può
+accedere al dispositivo o modificare l'archivio del browser.
+Usa una password dedicata e non caricare dati riservati per il collaudo.
+La demo è di sola consultazione e non modifica gli archivi locali.
 
-BACKUP
-- Accedere come amministratore > Amministrazione > Scarica backup.
-- Il backup ZIP contiene snapshot del database e tutti gli allegati. Contiene dati riservati:
-  salvare su un supporto protetto, preferibilmente cifrato, e verificare periodicamente il ripristino.
-- Per RIPRISTINARE: spegnere il server; estrarre 'database/qualita.sqlite3'
-  dal backup in 'dati_privati/qualita.sqlite3'; estrarre tutti i file
-  da 'allegati/' dentro 'dati_privati/allegati/'. Conservare prima una copia
-  della situazione corrente. Riavviare il server.
-- Effettuare almeno un backup periodico e uno prima di aggiornare il software.
-- Non modificare manualmente il database mentre il server e' in esecuzione.
+Esporta periodicamente l'archivio con "Esporta dati". Il file JSON comprende
+attività, storico e allegati dell'account corrente, senza password. Per il
+ripristino: crea/accedi a un account, scegli "Importa dati" e seleziona il JSON.
+L'importazione sostituisce l'archivio di quell'account dopo conferma.
 
-ACCESSO CON PIU' PERSONE
-- Per sicurezza, il server si avvia SOLO sul computer locale (127.0.0.1).
-- Per accesso di piu' utenti occorre installarlo su un computer sempre disponibile
-  e predisporre una connessione HTTPS affidabile con un amministratore IT.
-- NON esporre direttamente questo server di prova su internet e NON usare
-  il flag --host 0.0.0.0 senza un'infrastruttura di sicurezza appropriata.
-- L'applicazione non sostituisce backup gestiti, monitoraggio, gestione delle
-  vulnerabilita', verifica GDPR, policy di sicurezza o collaudo per la produzione.
+Cancellare i dati del browser o usare la navigazione privata può eliminare i dati.
+Il comportamento dello storage per file locali dipende dal browser: spostare il
+file, cambiare browser, origine o profilo può rendere l'archivio non disponibile.
+Esporta e reimporta i dati quando passi dalla cartella al file unico o all'hosting.
+Limite allegati locali: 2 MB ciascuno, con ulteriore limite totale del browser.
 
-CONTENUTI
-- Sono riprodotti la scheda madre INT.00 e gli 8 sottoprocessi INT.01-INT.08,
-  incluse le relative righe operative e le sezioni finali del materiale fornito.
-- I due documenti Word allegati sono inclusi nella cartella 'documenti'.
-- Le diciture originali e gli indicatori ancora da completare sono mantenuti
-  come nella bozza fornita. Il sistema non li considera indicatori gia' approvati.
-- Nessun dato operativo e' preinserito o inventato.
+FILE UNICO
+Per chi sviluppa: node scripts/build.mjs (Node 22+, nessuna dipendenza).
+Il comando genera dist/dispac.html, apribile e copiabile da solo, e dist/index.html
+per la pubblicazione. Tutti gli stili, il codice e le schede sono incorporati.
+Node serve solo per generare il file, non per usarlo.
+I documenti Word nella cartella documenti non vengono incorporati nel file unico.
 
-LIMITI NOTI DEL PROTOTIPO
-- Non e' una distribuzione certificata per la produzione istituzionale.
-- La creazione di utenti e' supportata; reset delle password, disattivazione
-  account, politica di retention e gestione avanzata dei ruoli richiedono sviluppo.
-- La gestione delle revisioni formali delle schede richiedera' workflow di approvazione.
-- Questo software non si sincronizza con i servizi dell'Ateneo.
-- Le informazioni storiche anteriori alla prima registrazione non compaiono
-  automaticamente: devono essere caricate con un lavoro di recupero iniziale.
-
-AGGIORNAMENTO INTERFACCIA
-La versione presenta una navigazione semplificata, pagine responsive, schede operative espandibili e ricerca con filtri. Le procedure originali in content.json e nella cartella documenti non sono state cambiate. Il trasferimento tra delegati non e una funzione in evidenza: lo storico rimane nel database indipendentemente dagli utenti.
+HOSTING
+Su GitHub Pages la webapp usa l'archivio locale: i dati non sono condivisi.
+Per MySQL su Altervista o altro hosting serve codice sul server, ad esempio PHP.
+Non inserire mai credenziali SQL nel codice HTML/JavaScript.
+Leggi WEB.md per struttura, pubblicazione e collegamento al futuro backend.
+Il database SQLite delle versioni precedenti non è importato automaticamente.

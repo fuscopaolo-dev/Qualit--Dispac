@@ -1,4 +1,4 @@
-name: Pubblica anteprima GitHub Pages
+name: Pubblica webapp GitHub Pages
 on:
   push:
     branches: [main]
@@ -18,13 +18,13 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-node@v4
         with:
-          python-version: '3.12'
-      - run: python scripts/build_pages.py
+          node-version: '22'
+      - run: node scripts/build.mjs
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: _site
+          path: dist
       - uses: actions/deploy-pages@v4
         id: deployment
