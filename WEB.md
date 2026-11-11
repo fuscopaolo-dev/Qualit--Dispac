@@ -75,3 +75,21 @@ Il backend PHP/MySQL non è incluso in questa modifica: richiede schema, gestion
 sicura degli account e collaudo sull'hosting scelto. Il cambio di configurazione
 da solo non crea il database o il servizio. Nessuna connessione SQL remota è
 stata provata. I dati locali non sono sincronizzati automaticamente col server.
+
+## Anteprime dei documenti
+
+Nei dettagli di un'attività, gli allegati TXT, RTF e PDF hanno un'anteprima
+compatta e il pulsante **Espandi**, che apre il documento completo nella
+piattaforma. Il download rimane un'azione separata. Il lettore è incluso anche
+nel file HTML unico e non usa servizi esterni.
+
+TXT: UTF-8, UTF-16 con BOM e Windows-1252. RTF: testo completo con paragrafi,
+grassetto, corsivo e sottolineatura; immagini incorporate, oggetti e impaginazioni
+complesse non sono riprodotti. PDF: visualizzatore integrato del browser con
+navigazione e zoom; serve un browser che supporti i PDF incorporati. I file
+con estensioni diverse rimangono scaricabili senza anteprima.
+
+La finestra espansa si chiude con Chiudi o Esc e ripristina il focus sul pulsante
+Espandi. Gli URL temporanei dei PDF vengono liberati quando si cambia vista
+oppure si apre un altro dettaglio. Le anteprime non richiedono modifiche ai
+vecchi archivi e non scaricano file sul dispositivo automaticamente.
