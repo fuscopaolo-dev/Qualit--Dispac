@@ -2,7 +2,7 @@
 """DiSPAC Qualita - standalone local intranet application (Python stdlib only)."""
 import argparse, base64, datetime, getpass, hashlib, hmac, http.cookies, http.server, io, json, mimetypes, os, pathlib, re, secrets, shutil, sqlite3, sys, threading, time, urllib.parse, zipfile
 ROOT=pathlib.Path(__file__).resolve().parent
-DATA=ROOT/'dati_privati'; DB=DATA/'qualita.sqlite3'; FILES=DATA/'allegati'; PUBLIC=ROOT/'web'; LOCK=threading.Lock()
+DATA=pathlib.Path(os.environ.get('DISPAC_DATA_DIR',str(ROOT/'dati_privati'))); DB=DATA/'qualita.sqlite3'; FILES=DATA/'allegati'; PUBLIC=ROOT/'web'; LOCK=threading.Lock()
 MAX_UPLOAD=20*1024*1024
 
 def utc(): return datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds')
@@ -21,7 +21,7 @@ CREATE INDEX IF NOT EXISTS ix_records_code ON records(code);CREATE INDEX IF NOT 
 
 def pw_hash(password,salt): return hashlib.scrypt(password.encode(),salt=bytes.fromhex(salt),n=2**14,r=8,p=1).hex()
 def make_user(username,name,role,password):
- if len(password)<12: raise ValueError('La password deve contenere almeno 12 caratteri')
+ if not 12<=len(password)<=256: raise ValueError('La password deve contenere almeno 12 caratteri')
  if not re.fullmatch(r'[A-Za-z0-9._-]{3,40}',username): raise ValueError('Nome utente non valido')
  salt=secrets.token_hex(16)
  with conn() as c:c.execute('INSERT INTO users(username,display_name,role,salt,password_hash,created_at) VALUES(?,?,?,?,?,?)',(username,name,role,salt,pw_hash(password,salt),utc()))
@@ -118,6 +118,15 @@ class Handler(http.server.BaseHTTPRequestHandler):
   path=urllib.parse.urlparse(self.path).path
   try:
    payload=self.request_json()
+   if path=='/api/register':
+    if self.headers.get('Content-Type','').split(';')[0]!='application/json':return self.error(415,'Formato richiesta non valido')
+    origin=self.headers.get('Origin')
+    if origin and urllib.parse.urlparse(origin).netloc!=self.headers.get('Host'):return self.error(403,'Origine non consentita')
+    name=str(payload.get('display_name','')).strip();username=str(payload.get('username','')).strip()
+    if not name or len(name)>100:return self.error(400,'Inserisci nome e cognome (massimo 100 caratteri)')
+    try:make_user(username,name,'lettore',str(payload.get('password','')))
+    except sqlite3.IntegrityError:return self.error(409,'Nome utente non disponibile. Scegline un altro.')
+    return self.senddata({'ok':True})
    if path=='/api/login':
     name=str(payload.get('username',''))[:80];pw=str(payload.get('password',''))
     with conn() as c:u=c.execute('SELECT * FROM users WHERE username=? AND active=1',(name,)).fetchone()
