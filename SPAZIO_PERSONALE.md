@@ -136,3 +136,8 @@ in un programma esterno, salvataggio tramite sostituzione temporanea, rinomina,
 spostamento e cancellazione, perdita di rete, avvio offline e cartella non disponibile.
 Verificare anche la modalità di sola lettura negli altri browser. La sincronizzazione
 cloud non è disponibile e non viene presentata come collaudata.
+
+Aggiornamento: ora sono disponibili modelli personali e bozze salvabili
+esplicitamente per attività e documenti, oltre a modelli iniziali di testo.
+L’autosalvataggio delle bozze, le scadenze e il versionamento cloud restano sviluppi
+successivi. Dettagli in [DOCUMENTI_MODELLI_BOZZE.md](DOCUMENTI_MODELLI_BOZZE.md).

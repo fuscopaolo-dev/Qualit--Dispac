@@ -77,3 +77,49 @@ test('demo Paperopoli completa, documenti UTF-8 e laboratorio isolato',async()=>
  await s.request('/api/register','POST',account);await s.request('/api/login','POST',account);
  assert.equal((await s.request('/api/records')).records.length,0);
 });
+
+test('modelli e bozze personali: isolamento, ripresa e completamento atomico',async()=>{
+ const {service:s,storage,setQuota}=setup(),api=s.request;
+ await api('/api/register','POST',account);await api('/api/login','POST',account);
+ const templateId=(await api('/api/templates','POST',{name:'Verifica',kind:'activity',payload:{...record,id:99,status:'conclusa',attachments:[{id:42}]}})).id;
+ const template=(await api('/api/templates')).templates[0];assert.equal(template.id,templateId);assert.equal(template.payload.status,undefined);assert.equal(template.payload.activity_date,undefined);assert.equal(template.payload.id,undefined);assert.equal(template.payload.attachments,undefined);
+ await assert.rejects(api('/api/templates','POST',{name:'verifica',kind:'activity',payload:record}),/già/);
+ const draftId=(await api('/api/drafts','POST',{kind:'activity',phase:1,payload:{...record,subject:'',activity_date:''}})).id;
+ assert.equal((await api('/api/records')).records.length,0);
+ await api('/api/logout','POST',{});await api('/api/login','POST',account);
+ assert.equal((await api('/api/drafts')).drafts[0].payload.subject,'');
+ await assert.rejects(api('/api/records','POST',{...record,subject:'',draft_id:draftId}),/Oggetto/);
+ assert.equal((await api('/api/drafts')).drafts.length,1);
+ const id=(await api('/api/records','POST',{...record,draft_id:draftId})).id;
+ assert.equal((await api('/api/drafts')).drafts.length,0);assert.equal((await api('/api/history/'+id)).history.length,1);
+ const editDraft=(await api('/api/drafts','POST',{kind:'activity',phase:2,record_id:id,payload:{...record,subject:'Modifica in bozza'}})).id;
+ assert.equal((await api('/api/records')).records[0].subject,record.subject);
+ await assert.rejects(api('/api/records','POST',{...record,draft_id:editDraft}),/altra|un’altra/);
+ await api('/api/records','POST',{...record,id,draft_id:editDraft,subject:'Aggiornata'});
+ assert.equal((await api('/api/history/'+id)).history.length,2);
+ const docDraft=(await api('/api/drafts','POST',{kind:'document',phase:0,payload:{title:'',body:'Appunti',format:'rtf'}})).id;
+ await assert.rejects(api('/api/documents','POST',{payload:{title:'',body:'Appunti',format:'rtf'},draft_id:docDraft}),/Completa/);
+ const docId=(await api('/api/documents','POST',{payload:{title:'Verbale',body:'Città — decisioni',format:'rtf'},draft_id:docDraft})).id;
+ assert.equal((await api('/api/drafts')).drafts.length,0);assert.equal((await api('/api/documents')).documents[0].id,docId);
+ const exported=JSON.parse([...storage.values()][0]);const archive=Object.values(exported.archives)[0];
+ s.importArchive(JSON.stringify({format:'dispac-archive',version:1,archive}));assert.equal((await api('/api/documents')).documents.length,1);assert.equal((await api('/api/templates')).templates.length,1);
+ await api('/api/logout','POST',{});await api('/api/register','POST',{...account,username:'altro.user'});await api('/api/login','POST',{...account,username:'altro.user'});
+ assert.equal((await api('/api/templates')).templates.length,0);assert.equal((await api('/api/documents')).documents.length,0);
+ await assert.rejects(api('/api/templates/'+templateId,'DELETE'),/non trovato/);
+ await api('/api/logout','POST',{});await api('/api/login','POST',account);
+ const kept=(await api('/api/drafts','POST',{kind:'document',phase:0,payload:{title:'Documento',body:'Testo',format:'txt'}})).id;
+ setQuota();await assert.rejects(api('/api/documents','POST',{payload:{title:'Documento',body:'Testo',format:'txt'},draft_id:kept}),/Salvataggio non riuscito/);
+ assert.equal((await api('/api/drafts')).drafts[0].id,kept);assert.equal((await api('/api/documents')).documents.length,1);
+});
+
+test('validazione libreria, vecchi backup e ruoli',async()=>{
+ const {service:s,storage}=setup(),api=s.request;s.enterDemo();await assert.rejects(api('/api/drafts','POST',{}),/consultazione/);
+ s.enterSandbox();await api('/api/templates','POST',{name:'Sandbox',kind:'document',payload:{title:'',body:'',format:'txt'}});assert.equal(storage.size,0);
+ s.enterDemo();assert.equal((await api('/api/templates')).templates.length,0);
+ await api('/api/register','POST',account);await api('/api/login','POST',account);
+ s.importArchive(JSON.stringify({format:'dispac-archive',version:1,archive:{records:[],history:[],attachments:[]}}));assert.equal((await api('/api/drafts')).drafts.length,0);
+ const bad={format:'dispac-archive',version:1,archive:{records:[],history:[],attachments:[],templates:[{id:'test',name:'X',kind:'document',payload:{title:'',body:'',format:'exe'},created_at:'today',updated_at:'today'}]}};
+ assert.throws(()=>s.importArchive(JSON.stringify(bad)),/Formato/);
+ await assert.rejects(api('/api/drafts','POST',{kind:'document',phase:4,payload:{title:'',body:'',format:'txt'}}),/Passaggio/);
+ await assert.rejects(api('/api/drafts','POST',{kind:'activity',phase:1,record_id:999,payload:record}),/origine/);
+});

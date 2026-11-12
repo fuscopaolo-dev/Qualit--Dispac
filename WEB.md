@@ -43,7 +43,7 @@ Allegati: massimo 2 MB ciascuno; lo spazio totale dipende dal browser.
 Gli errori di quota vengono mostrati senza dichiarare riuscito il salvataggio.
 Per `file://` il comportamento dello storage dipende dal browser e dal percorso:
 esportare l'archivio prima di spostare il file o cambiare origine/profilo.
-Esporta dati salva attività, allegati e storico dell'account, senza credenziali.
+Esporta dati salva attività, allegati, storico, documenti, bozze e modelli personali dell'account, senza credenziali.
 Importa dati valida e sostituisce tale archivio dopo conferma.
 Il database SQLite precedente non è migrato automaticamente.
 
@@ -78,7 +78,7 @@ stata provata. I dati locali non sono sincronizzati automaticamente col server.
 
 ## Anteprime dei documenti
 
-Nei dettagli di un'attività, gli allegati TXT, RTF e PDF hanno un'anteprima
+Nei dettagli di un'attività, gli allegati TXT, RTF, PDF, Markdown, CSV e JSON hanno un'anteprima
 compatta e il pulsante **Espandi**, che apre il documento completo nella
 piattaforma. Il download rimane un'azione separata. Il lettore è incluso anche
 nel file HTML unico e non usa servizi esterni.
@@ -140,3 +140,18 @@ Non è una sincronizzazione cloud: la cartella viene riletta solo mentre lo spaz
 personale è aperto e visibile; i file allegati sono copie indipendenti. Il progetto
 browser-only, i limiti di compatibilità, le prove da svolgere su Mac e Windows e
 il protocollo proposto per il futuro cloud sono in [SPAZIO_PERSONALE.md](SPAZIO_PERSONALE.md).
+
+## Documenti, modelli e bozze
+
+La voce **Documenti** permette di creare testi da modelli iniziali o personali,
+salvarli completi, esportarli in TXT/RTF/Markdown e allegarne copie alle attività.
+**Salva bozza** conserva una compilazione incompleta senza validarla come elemento
+completo; le attività riprendono dal passaggio salvato. **Bozze e modelli** raccoglie
+il lavoro personale. Il salvataggio delle bozze è esplicito, senza autosalvataggio.
+Le raccolte sono isolate per account e incluse in Esporta/Importa dati.
+
+Il lettore include TXT, RTF, PDF, Markdown come testo, CSV tabellare e JSON.
+Nei testi espansi sono disponibili dimensione, a capo e ricerca; i CSV hanno
+paginazione e filtro. La compatibilità, i limiti di fedeltà, le nuove strutture
+e il contratto del futuro backend sono in
+[DOCUMENTI_MODELLI_BOZZE.md](DOCUMENTI_MODELLI_BOZZE.md).

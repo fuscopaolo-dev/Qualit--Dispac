@@ -8,7 +8,7 @@ const content=JSON.parse(await read('content.json'));
 const contentScript='window.DISPAC_CONTENT = '+JSON.stringify(content).replace(/</g,'\\u003c')+';\n';
 await writeFile(new URL('web/content-data.js',root),contentScript);
 let html=await read('index.html');
-const appScripts=['config.js','web/content-data.js','web/demo-data.js','web/guide.js','web/data-service.js','web/document-preview.js','web/workspace.js','web/offline.js','web/app.js'];
+const appScripts=['config.js','web/content-data.js','web/demo-data.js','web/guide.js','web/data-service.js','web/document-preview.js','web/workspace.js','web/offline.js','web/documents.js','web/app.js'];
 const css=await read('web/style.css');
 html=html.replace('<link rel="stylesheet" href="./web/style.css">',()=>'<style>'+css+'</style>');
 for(const name of appScripts){

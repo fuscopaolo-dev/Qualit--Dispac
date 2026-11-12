@@ -33,6 +33,29 @@ window.DQService = (() => {
     if(!['aperta','in_corso','conclusa'].includes(row.status)||!/^\d{4}-\d{2}-\d{2}$/.test(row.activity_date)) fail('Stato o data non validi.');
     if(row.step!==null&&(!sub||!Number.isInteger(Number(row.step))||Number(row.step)<1||Number(row.step)>sub.steps.length)) fail('Passaggio non valido.');
   }
+  const formats=['txt','rtf','md'];
+  function textField(value,max,label){if(typeof value!=='string'||value.length>max)fail(label+' non valido (massimo '+max+' caratteri).');return value;}
+  function payload(kind,value,template=false){
+    if(!value||typeof value!=='object'||Array.isArray(value))fail('Contenuto non valido.');
+    if(kind==='document')return {title:textField(value.title??'',250,'Titolo'),body:textField(value.body??'',1000000,'Testo'),format:formats.includes(value.format)?value.format:fail('Formato non valido.')};
+    if(kind!=='activity')fail('Tipo non valido.');
+    const row={code:value.code??'INT.00',step:value.step==null||value.step===''?null:Number(value.step),subject:textField(value.subject??'',250,'Oggetto'),description:textField(value.description??'',10000,'Annotazioni')};
+    validateRecord({...row,subject:row.subject.trim()||'Bozza',activity_date:'2026-01-01',status:'aperta'});
+    if(!template){row.activity_date=value.activity_date??'';row.status=value.status??'aperta';if(row.activity_date!==''&&!/^\d{4}-\d{2}-\d{2}$/.test(row.activity_date))fail('Data non valida.');if(!['aperta','in_corso','conclusa'].includes(row.status))fail('Stato non valido.');}
+    return row;
+  }
+  function validateLibrary(archive){
+    for(const key of ['templates','drafts','documents']){if(archive[key]===undefined)archive[key]=[];if(!Array.isArray(archive[key]))fail('Raccolta '+key+' non valida.');}
+    for(const key of ['templates','drafts','documents']){
+      const ids=new Set();
+      for(const item of archive[key]){
+        if(!item||typeof item.id!=='string'||!/^[a-zA-Z0-9-]{1,64}$/.test(item.id)||ids.has(item.id)||typeof item.created_at!=='string'||typeof item.updated_at!=='string')fail('Identificativo o data non validi in '+key+'.');ids.add(item.id);
+        if(key==='documents'){const data=payload('document',item.payload);if(!data.title.trim()||!data.body.trim()||typeof item.author!=='string')fail('Documento incompleto.');}
+        else {payload(item.kind,item.payload,key==='templates');if(key==='templates'&&(!textField(item.name,100,'Nome modello').trim()))fail('Nome modello vuoto.');if(key==='drafts'&&(!Number.isInteger(item.phase)||item.phase<0||item.phase>2||item.kind==='document'&&item.phase!==0||item.record_id!=null&&(item.kind!=='activity'||!archive.records.some(r=>r.id===item.record_id))||item.document_id!=null&&(item.kind!=='document'||!archive.documents.some(d=>d.id===item.document_id))))fail('Riferimento bozza non valido.');}
+      }
+    }
+  }
+  function sourceDraft(archive,id,kind){if(id==null)return null;const draft=(archive.drafts||[]).find(d=>d.id===id&&d.kind===kind);if(!draft)fail('Bozza non trovata.');return draft;}
   function download(blob, name) {
     const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
   }
@@ -75,6 +98,34 @@ window.DQService = (() => {
     const data=['demo','sandbox'].includes(session.id)?null:read(),archive=data?data.archives[session.id]:demoArchive;
     if(!archive)fail('Archivio non trovato. Accedi nuovamente.');
     if(method!=='GET'&&session.role==='lettore')fail('La demo permette solo la consultazione.');
+    // Old archives remain valid; collections are created lazily, per account.
+    archive.templates??=[];archive.drafts??=[];archive.documents??=[];
+    const library=/^\/api\/(templates|drafts|documents)(?:\/([a-zA-Z0-9-]{1,64}))?$/.exec(path);
+    if(library){
+      const [,collection,itemId]=library,items=archive[collection];
+      if(method==='GET'&&!itemId)return {[collection]:clone([...items].sort((a,b)=>b.updated_at.localeCompare(a.updated_at)))};
+      if(method==='DELETE'&&itemId){if(collection==='documents')fail('Operazione non disponibile.');const index=items.findIndex(item=>item.id===itemId);if(index<0)fail('Elemento non trovato.');items.splice(index,1);if(data)write(data);return {ok:true};}
+      if(method==='POST'&&!itemId){
+        const prior=body.id==null?null:items.find(item=>item.id===body.id);if(body.id!=null&&!prior)fail('Elemento non trovato.');
+        const now=new Date().toISOString(),id=prior?.id||crypto.randomUUID();let row;
+        if(collection==='templates'){
+          const name=textField(body.name,100,'Nome modello').trim();if(!name)fail('Dai un nome al modello.');if(items.some(item=>item.id!==id&&item.name.toLocaleLowerCase()===name.toLocaleLowerCase()))fail('Esiste già un modello con questo nome.');
+          row={id,name,kind:body.kind,payload:payload(body.kind,body.payload,true),created_at:prior?.created_at||now,updated_at:now};
+        }else if(collection==='drafts'){
+          if(!Number.isInteger(body.phase)||body.phase<0||body.phase>2||body.kind==='document'&&body.phase!==0)fail('Passaggio di compilazione non valido.');
+          if(body.record_id!=null&&(body.kind!=='activity'||!archive.records.some(r=>r.id===body.record_id)))fail('Attività di origine non trovata.');
+          if(body.document_id!=null&&(body.kind!=='document'||!archive.documents.some(d=>d.id===body.document_id)))fail('Documento di origine non trovato.');
+          row={id,kind:body.kind,payload:payload(body.kind,body.payload),phase:body.phase,record_id:body.record_id??null,document_id:body.document_id??null,created_at:prior?.created_at||now,updated_at:now};
+        }else{
+          const content=payload('document',body.payload);if(!content.title.trim()||!content.body.trim())fail('Completa titolo e testo, oppure salva come bozza.');
+          const draft=sourceDraft(archive,body.draft_id,'document');if(draft&&(draft.document_id??null)!==(prior?.id??null))fail('La bozza appartiene a un altro documento.');
+          row={id,payload:content,author:prior?.author||session.display_name,created_at:prior?.created_at||now,updated_at:now};
+          if(draft)archive.drafts=archive.drafts.filter(d=>d.id!==draft.id);
+        }
+        if(prior)Object.assign(prior,row);else items.push(row);if(data)write(data);return {ok:true,id};
+      }
+      fail('Operazione non disponibile.');
+    }
     if(path==='/api/records'&&method==='GET') {
       const search=(q.get('search')||'').toLowerCase();
       const records=archive.records.filter(r=>(!q.get('code')||q.get('code')==='all'||r.code===q.get('code'))&&(!q.get('status')||q.get('status')==='all'||r.status===q.get('status'))&&(!q.get('from')||r.activity_date>=q.get('from'))&&(!q.get('to')||r.activity_date<=q.get('to'))&&(!search||[r.subject,r.description,...r.attachments.map(a=>a.file_name)].some(v=>v.toLowerCase().includes(search))));
@@ -82,12 +133,14 @@ window.DQService = (() => {
     }
     if(path==='/api/records'&&method==='POST') {
       validateRecord(body);
+      const draft=sourceDraft(archive,body.draft_id,'activity');if(draft&&(draft.record_id??null)!==(body.id??null))fail('La bozza appartiene a un’altra attività.');
       const prior=body.id==null?null:archive.records.find(r=>r.id===Number(body.id));
       if(body.id!=null&&!prior)fail('Registrazione non trovata.');
       const now=new Date().toISOString(),id=prior?.id||Math.max(0,...archive.records.map(r=>r.id))+1;
       const row={id,code:body.code,step:body.step==null?null:Number(body.step),subject:body.subject.trim(),description:body.description,status:body.status,activity_date:body.activity_date,author:prior?.author||session.display_name,created_at:prior?.created_at||now,updated_at:now,attachments:prior?.attachments||[]};
       if(prior)Object.assign(prior,row);else archive.records.push(row);
       archive.history.push({record_id:id,action:prior?'aggiornamento':'creazione',author:session.display_name,at:now,snapshot:JSON.stringify(row)});
+      if(draft)archive.drafts=archive.drafts.filter(d=>d.id!==draft.id);
       if(data)write(data);return {ok:true,id};
     }
     if(path.startsWith('/api/history/'))return {history:clone(archive.history.filter(h=>h.record_id===Number(path.split('/').pop())).reverse())};
@@ -121,6 +174,7 @@ window.DQService = (() => {
       for(const item of a.attachments){if(!Number.isSafeInteger(item.id)||attachmentIds.has(item.id)||typeof item.file_name!=='string'||typeof item.created_at!=='string'||typeof item.data!=='string'||atob(item.data).length>2*1024*1024||item.size!==atob(item.data).length)fail('Allegati non validi.');attachmentIds.add(item.id);}
       for(const r of a.records)for(const item of r.attachments){const original=a.attachments.find(x=>x.id===item.id);if(!original||original.file_name!==item.file_name||original.size!==item.size)fail('Riferimento allegato non valido.');}
       for(const h of a.history)if(!ids.has(h.record_id)||typeof h.action!=='string'||typeof h.author!=='string'||typeof h.at!=='string'||typeof h.snapshot!=='string')fail('Storico non valido.');
+      validateLibrary(a);
       const data=read();data.archives[session.id]=clone(a);write(data);
     }
   };
