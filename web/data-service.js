@@ -2,7 +2,7 @@
 'use strict';
 window.DQService = (() => {
   const key = 'dispac.qualita.v1';
-  let session = null;
+  let session = null, demoArchive = null;
   const config = window.DISPAC_CONFIG || {};
   const local = !config.apiUrl;
   const clone = value => JSON.parse(JSON.stringify(value));
@@ -55,7 +55,7 @@ window.DQService = (() => {
     }
     const parsed=new URL(url,'https://local.invalid'),path=parsed.pathname,q=parsed.searchParams;
     if(path==='/api/me')return {user:session};
-    if(path==='/api/logout'){session=null;return {ok:true};}
+    if(path==='/api/logout'){session=null;demoArchive=null;return {ok:true};}
     if(path==='/api/register') {
       const username=String(body.username||'').trim(),display_name=String(body.display_name||'').trim(),password=String(body.password||'');
       if(!/^[A-Za-z0-9._-]{3,40}$/.test(username))fail('Nome utente non valido.');
@@ -72,7 +72,7 @@ window.DQService = (() => {
     }
     if(!session)fail('Accedi per continuare.');
     if(path==='/api/content')return clone(window.DISPAC_CONTENT);
-    const data=session.id==='demo'?null:read(),archive=data?data.archives[session.id]:{records:[],history:[],attachments:[]};
+    const data=['demo','sandbox'].includes(session.id)?null:read(),archive=data?data.archives[session.id]:demoArchive;
     if(!archive)fail('Archivio non trovato. Accedi nuovamente.');
     if(method!=='GET'&&session.role==='lettore')fail('La demo permette solo la consultazione.');
     if(path==='/api/records'&&method==='GET') {
@@ -88,7 +88,7 @@ window.DQService = (() => {
       const row={id,code:body.code,step:body.step==null?null:Number(body.step),subject:body.subject.trim(),description:body.description,status:body.status,activity_date:body.activity_date,author:prior?.author||session.display_name,created_at:prior?.created_at||now,updated_at:now,attachments:prior?.attachments||[]};
       if(prior)Object.assign(prior,row);else archive.records.push(row);
       archive.history.push({record_id:id,action:prior?'aggiornamento':'creazione',author:session.display_name,at:now,snapshot:JSON.stringify(row)});
-      write(data);return {ok:true,id};
+      if(data)write(data);return {ok:true,id};
     }
     if(path.startsWith('/api/history/'))return {history:clone(archive.history.filter(h=>h.record_id===Number(path.split('/').pop())).reverse())};
     if(path==='/api/attachment'&&method==='POST') {
@@ -97,7 +97,7 @@ window.DQService = (() => {
       if(!body.name||body.name.length>180)fail('Nome file non valido.');
       const id=Math.max(0,...archive.attachments.map(a=>a.id))+1;
       const attachment={id,file_name:body.name,size:bytes.length,created_at:new Date().toISOString()};
-      record.attachments.push(attachment);archive.attachments.push({...attachment,data:body.data});write(data);return {ok:true};
+      record.attachments.push(attachment);archive.attachments.push({...attachment,data:body.data});if(data)write(data);return {ok:true};
     }
     if(path.startsWith('/api/attachment/')) {
       const item=archive.attachments.find(a=>a.id===Number(path.split('/').pop()));if(!item)fail('Allegato non trovato.');
@@ -108,10 +108,11 @@ window.DQService = (() => {
   return {
     local,request,
     attachment(id){return request('/api/attachment/'+id,'GET',null,{preview:true});},
-    enterDemo(){session={id:'demo',display_name:'Visitatore demo',role:'lettore'};},
-    exportArchive(){if(!session||session.id==='demo')fail('Accedi a un account locale.');const data=read();download(new Blob([JSON.stringify({format:'dispac-archive',version:1,archive:data.archives[session.id]},null,2)],{type:'application/json'}),'dispac-archivio.json');},
+    enterDemo(){demoArchive=window.DQDemoArchive();session={id:'demo',display_name:'Visitatore demo',role:'lettore'};},
+    enterSandbox(){demoArchive=window.DQDemoArchive();session={id:'sandbox',display_name:'Paperino · laboratorio',role:'delegato'};},
+    exportArchive(){if(!session||['demo','sandbox'].includes(session.id))fail('Accedi a un account locale.');const data=read();download(new Blob([JSON.stringify({format:'dispac-archive',version:1,archive:data.archives[session.id]},null,2)],{type:'application/json'}),'dispac-archivio.json');},
     importArchive(text){
-      if(!session||session.id==='demo')fail('Accedi a un account locale.');
+      if(!session||['demo','sandbox'].includes(session.id))fail('Accedi a un account locale.');
       const backup=JSON.parse(text),a=backup.archive;
       if(backup.format!=='dispac-archive'||backup.version!==1||!a||!Array.isArray(a.records)||!Array.isArray(a.history)||!Array.isArray(a.attachments))fail('Copia di sicurezza non valida.');
       const ids=new Set();

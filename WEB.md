@@ -93,3 +93,27 @@ La finestra espansa si chiude con Chiudi o Esc e ripristina il focus sul pulsant
 Espandi. Gli URL temporanei dei PDF vengono liberati quando si cambia vista
 oppure si apre un altro dettaglio. Le anteprime non richiedono modifiche ai
 vecchi archivi e non scaricano file sul dispositivo automaticamente.
+
+## Wiki, aiuto contestuale e demo Paperopoli
+
+La voce **Wiki e guide** contiene 15 articoli cercabili: primi passi, processi,
+compilazione, archivio, allegati, storico, monitoraggio, account e copie dei dati.
+Ogni articolo propone una spiegazione ELI5 in arancio pallido, istruzioni pratiche
+e un esempio. I contenuti sono mantenuti in `web/guide.js` e inclusi nella build.
+I pulsanti `?` compaiono al passaggio del mouse e al focus da tastiera; sui touch
+restano visibili. Aprono un pannello laterale con Esc, ripristino del focus e un
+collegamento alla wiki completa. Il pulsante Guida in alto è sempre disponibile.
+
+**Visita la piattaforma demo** carica nove attività fittizie ispirate a Paperopoli,
+una per ciascun codice INT.00–INT.08, con nove allegati TXT UTF-8 e storico.
+`web/demo-data.js` genera questa raccolta senza scriverla in localStorage.
+**Prova la compilazione** apre un laboratorio modificabile in memoria: si possono
+creare e aggiornare attività, caricare allegati e leggere lo storico. Ricaricare o
+uscire elimina le prove. Gli account locali restano separati e inizialmente vuoti.
+La demo consultabile e il laboratorio sono disponibili solo in modalità locale.
+
+La compilazione di nuove attività e modifiche procede in tre passaggi: contesto,
+contenuto e riepilogo. I campi richiesti vengono verificati prima del riepilogo;
+Indietro conserva gli input. Il salvataggio avviene solo alla conferma finale.
+La navigazione con dati non salvati richiede conferma per evitare perdite.
+Dopo il salvataggio si possono collegare i documenti nel dettaglio dell’attività.

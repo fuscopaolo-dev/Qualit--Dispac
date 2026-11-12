@@ -4,11 +4,12 @@ import vm from 'node:vm';
 import {readFile} from 'node:fs/promises';
 import {webcrypto} from 'node:crypto';
 const source=await readFile(new URL('../web/data-service.js',import.meta.url),'utf8');
+const demoSource=await readFile(new URL('../web/demo-data.js',import.meta.url),'utf8');
 const content=JSON.parse(await readFile(new URL('../content.json',import.meta.url),'utf8'));
 function setup(){
  const storage=new Map();let quota=false;
- const context=vm.createContext({window:{DISPAC_CONTENT:content,DISPAC_CONFIG:{}},crypto:webcrypto,TextEncoder,Uint8Array,URL,Blob,atob,setTimeout,localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>{if(quota)throw Error('quota');storage.set(k,v)}}});
- vm.runInContext(source,context);
+ const context=vm.createContext({window:{DISPAC_CONTENT:content,DISPAC_CONFIG:{}},crypto:webcrypto,TextEncoder,Uint8Array,URL,Blob,atob,btoa,setTimeout,localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>{if(quota)throw Error('quota');storage.set(k,v)}}});
+ vm.runInContext(demoSource,context);vm.runInContext(source,context);
  return {service:context.window.DQService,storage,setQuota:()=>quota=true};
 }
 const account={username:'test.user',display_name:'Utente Test',password:'UnaPassword12345!'};
@@ -51,4 +52,28 @@ test('ripristino validato e rifiuto di copie non valide',async()=>{
  assert.equal((await s.request('/api/records')).records[0].id,id);
  assert.throws(()=>s.importArchive('{"archive":{}}'),/non valida/);
  assert.equal((await s.request('/api/records')).records.length,1);
+});
+
+test('demo Paperopoli completa, documenti UTF-8 e laboratorio isolato',async()=>{
+ const {service:s,storage}=setup();s.enterDemo();
+ const demo=(await s.request('/api/records')).records;
+ assert.equal(demo.length,9);
+ assert.equal(new Set(demo.map(r=>r.code)).size,9);
+ for(const row of demo){
+  assert.equal(row.attachments.length,1);
+  assert.ok((await s.request('/api/history/'+row.id)).history.length);
+  const attachment=await s.attachment(row.attachments[0].id);
+  assert.match(await attachment.blob.text(),/ESEMPIO FITTIZIO · PAPEROPOLI/);
+ }
+ await assert.rejects(s.request('/api/records','POST',record),/consultazione/);
+ s.enterSandbox();const id=(await s.request('/api/records','POST',record)).id;
+ await s.request('/api/attachment','POST',{record_id:id,name:'prova.txt',data:'dGVzdA=='});
+ await s.request('/api/records','POST',{...record,id,status:'conclusa'});
+ assert.equal((await s.request('/api/records')).records.length,10);
+ assert.equal((await s.request('/api/history/'+id)).history.length,2);
+ assert.equal(storage.size,0);
+ assert.throws(()=>s.importArchive('{}'),/Accedi/);
+ s.enterDemo();assert.equal((await s.request('/api/records')).records.length,9);
+ await s.request('/api/register','POST',account);await s.request('/api/login','POST',account);
+ assert.equal((await s.request('/api/records')).records.length,0);
 });
