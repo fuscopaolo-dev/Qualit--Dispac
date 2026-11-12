@@ -96,10 +96,13 @@ vecchi archivi e non scaricano file sul dispositivo automaticamente.
 
 ## Wiki, aiuto contestuale e demo Paperopoli
 
-La voce **Wiki e guide** contiene 15 articoli cercabili: primi passi, processi,
+La voce **Wiki e guide** contiene guide cercabili per ciascuna voce significativa: primi passi, processi,
 compilazione, archivio, allegati, storico, monitoraggio, account e copie dei dati.
-Ogni articolo propone una spiegazione ELI5 in arancio pallido, istruzioni pratiche
-e un esempio. I contenuti sono mantenuti in `web/guide.js` e inclusi nella build.
+Ogni articolo propone una spiegazione in arancio pallido, senza titoletto,
+istruzioni pratiche e almeno due esempi. Gli aiuti si applicano esplicitamente
+alle singole etichette: area, responsabilità, finalità, evidenze e ambiti
+dei sottoprocessi hanno spiegazioni distinte. Non si aggiungono aiuti generici
+a schede ripetute, statistiche o voci di navigazione. I contenuti sono mantenuti in `web/guide.js` e inclusi nella build.
 I pulsanti `?` compaiono al passaggio del mouse e al focus da tastiera; sui touch
 restano visibili. Aprono un pannello laterale con Esc, ripristino del focus e un
 collegamento alla wiki completa. Il pulsante Guida in alto è sempre disponibile.
@@ -117,3 +120,23 @@ contenuto e riepilogo. I campi richiesti vengono verificati prima del riepilogo;
 Indietro conserva gli input. Il salvataggio avviene solo alla conferma finale.
 La navigazione con dati non salvati richiede conferma per evitare perdite.
 Dopo il salvataggio si possono collegare i documenti nel dettaglio dell’attività.
+
+
+## Cartella personale e interfaccia offline
+
+**Spazio personale** è disponibile dal menu e dalla schermata di accesso. Su
+Chrome/Edge desktop può collegare una cartella reale con permesso esplicito,
+ricordarla, rileggere i documenti, creare nuovi TXT senza sovrascritture e
+allegare una copia scelta a un’attività. Gli altri browser hanno una selezione
+in sola lettura da ripetere per aggiornare i file.
+
+La build genera `sw.js` nella root e in `dist/`. Pubblicare anche questo file:
+con HTTPS, dopo il primo caricamento, il service worker conserva esclusivamente
+l’interfaccia pubblica per riaprire lo spazio personale offline. Non conserva
+risposte API o documenti privati nella cache. Il file unico HTML rimane utilizzabile
+senza service worker; la cache del sito richiede che `sw.js` sia pubblicato accanto.
+
+Non è una sincronizzazione cloud: la cartella viene riletta solo mentre lo spazio
+personale è aperto e visibile; i file allegati sono copie indipendenti. Il progetto
+browser-only, i limiti di compatibilità, le prove da svolgere su Mac e Windows e
+il protocollo proposto per il futuro cloud sono in [SPAZIO_PERSONALE.md](SPAZIO_PERSONALE.md).

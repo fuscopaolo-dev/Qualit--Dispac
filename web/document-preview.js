@@ -1,6 +1,6 @@
 /* Safe text/RTF reading and native in-page PDF display. No remote viewer. */
 'use strict';
-window.DocumentPreview = (() => {
+window.createDQDocumentPreview = (titleId='documentTitle') => {
   let generation = 0;
   const urls = new Set();
   let dialog = null, returnFocus = null;
@@ -80,15 +80,15 @@ window.DocumentPreview = (() => {
     }
     const text=node('div','document-text');
     let remaining=expanded?Infinity:1600;
-    for(const run of doc.runs){if(remaining<=0)break;const span=node('span',undefined,run.text.slice(0,remaining));span.classList.toggle('rtf-bold',run.bold);span.classList.toggle('rtf-italic',run.italic);span.classList.toggle('rtf-underline',run.underline);text.append(span);remaining-=run.text.length;}
+    for(const run of doc.runs){if(remaining<=0)break;const span=node('span',undefined,run.text.slice(0,remaining));span.classList.toggle('rtf-bold',!!run.bold);span.classList.toggle('rtf-italic',!!run.italic);span.classList.toggle('rtf-underline',!!run.underline);text.append(span);remaining-=run.text.length;}
     if(!doc.runs.some(r=>r.text.trim()))text.append(node('span','preview-status','Documento vuoto.'));
     host.append(text);
   }
   function expand(doc,trigger){
     if(!dialog){
-      dialog=node('dialog','document-dialog');dialog.setAttribute('aria-labelledby','documentTitle');
+      dialog=node('dialog','document-dialog');dialog.setAttribute('aria-labelledby',titleId);
       const header=node('header','document-toolbar'),label=node('div');
-      const title=node('h2',undefined);title.id='documentTitle';label.append(title,node('p','document-format'));
+      const title=node('h2',undefined);title.id=titleId;label.append(title,node('p','document-format'));
       const button=node('button','btn light small','Chiudi');button.type='button';button.autofocus=true;button.onclick=close;
       header.append(label,button);dialog.append(header,node('div','document-full'));document.body.append(dialog);
       dialog.addEventListener('close',()=>{dialog.querySelector('.document-full').replaceChildren();if(returnFocus?.isConnected)returnFocus.focus();returnFocus=null;});
@@ -128,4 +128,5 @@ window.DocumentPreview = (() => {
     }
   }
   return {mount,clear,close,parseRTF,decodeText};
-})();
+};
+window.DocumentPreview = window.createDQDocumentPreview();
